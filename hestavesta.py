@@ -1,25 +1,10 @@
-from flask import Flask, render_template, url_for, flash, redirect
-from flask_sqlalchemy import SQLAlchemy
-from form import RegistrationForm, LoginForm
+from flask import render_template, url_for, flash, redirect
 from flask_bcrypt import Bcrypt
+from form import RegistrationForm, LoginForm
+from classes import Student, School
+from db_init import app, db
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'a0e62fd88b4fe832e296132678dcae41'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:helloworld101@localhost:5432/hestavesta'
-db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
-
-class Student(db.Model):
-    student_id = db.Column(db.Integer, primary_key=True)
-    first_name = db.Column(db.String(32), unique=True, nullable=False)
-    last_name = db.Column(db.String(32), unique=True, nullable=False)
-    grade = db.Column(db.Integer, nullable=False)
-    school_id = db.Column(db.Integer, nullable=False)
-    username = db.Column(db.String(20), unique=True, nullable=False)
-    password = db.Column(db.String(120), unique=True, nullable=False)
-
-    def __repr__(self):
-        return f"User'({self.username}','{self.image_file}')"
 
 @app.route('/')
 @app.route('/home')
@@ -34,13 +19,20 @@ def about():
 @app.route('/register', methods=["GET", "POST"])
 def register():
     form = RegistrationForm()
+
+    flash(f'Grade = {form.grade.data}')
     if form.validate_on_submit():
         encrypted_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        student = Student(first_name='Sharanya', last_name='Nair', grade= 8, school_id=1, username=form.username.data, password=encrypted_password )
-        db.session.add(student)
-        db.session.commit()
+        flash(f'Grade = {form.grade.data}')
+        #flash(f'School = {form.school.data}')
+        #student = Student(first_name=form.first_name.data, last_name=form.last_name.data, grade=form.grade.data, school_id=form.school.data, username=form.username.data, password=encrypted_password)
+        #db.session.add(student)
+        #db.session.commit()
         flash(f'Hello {form.username.data}, your account has been created!', 'success')
         return redirect(url_for('login'))
+    else:
+        form.school.choices = [(str(school.school_id).encode("utf-8").decode("utf-8"), str(school.name).encode("utf-8").decode("utf-8")) for school in db.session.query(School).all()]
+
     return render_template('register.html', title='Register', form=form)
 
 @app.route('/login',  methods=["GET", "POST"])
